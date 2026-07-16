@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Watermark Replacer</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <h1>Video Watermark Replacer</h1>
+    <p class="subtitle">Detect a watermark, swap it for a replacement image, and render the result.</p>
+  </header>
+
+  <main>
+    <section class="panel" id="source-panel">
+      <h2>1. Source</h2>
+
+      <div class="field-row">
+        <label for="video-select">Video</label>
+        <select id="video-select">
+          <option value="">-- select video --</option>
+        </select>
+        <label class="upload-btn" for="video-upload">
+          Upload video
+          <input type="file" id="video-upload" accept="video/*" hidden>
+        </label>
+        <button type="button" id="video-browse-btn">Browse&hellip;</button>
+      </div>
+
+      <div class="field-row">
+        <label for="image-select">Replacement image</label>
+        <select id="image-select">
+          <option value="">-- select image --</option>
+        </select>
+        <label class="upload-btn" for="image-upload">
+          Upload image
+          <input type="file" id="image-upload" accept="image/*" hidden>
+        </label>
+        <button type="button" id="image-browse-btn">Browse&hellip;</button>
+      </div>
+    </section>
+
+    <section class="panel" id="preview-panel">
+      <h2>2. Preview &amp; watermark box</h2>
+
+      <div class="canvas-wrap">
+        <canvas id="preview-canvas" width="800" height="450"></canvas>
+      </div>
+
+      <div class="field-row">
+        <label for="time-slider">Time</label>
+        <input type="range" id="time-slider" min="0" max="120" step="0.1" value="0">
+        <span id="time-label" class="mono">0.0s</span>
+      </div>
+
+      <div class="field-row">
+        <button id="detect-btn" type="button">Auto-detect watermark</button>
+        <span id="detect-info" class="detect-info"></span>
+        <span id="manual-indicator" class="badge hidden">Manual override</span>
+      </div>
+
+      <div class="field-row box-inputs">
+        <label>x <input type="number" id="box-x" step="1"></label>
+        <label>y <input type="number" id="box-y" step="1"></label>
+        <label>w <input type="number" id="box-w" step="1"></label>
+        <label>h <input type="number" id="box-h" step="1"></label>
+      </div>
+      <p class="hint">Drag inside the box to move it, drag a corner handle to resize. Editing the fields above keeps it in sync.</p>
+    </section>
+
+    <section class="panel" id="config-panel">
+      <h2>3. Process</h2>
+
+      <div class="field-row sizing-mode-row">
+        <span class="mode-label">Sizing mode</span>
+        <label class="radio-label">
+          <input type="radio" name="sizing-mode" id="sizing-mode-scale" value="scale" checked>
+          Scale &times;
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="sizing-mode" id="sizing-mode-fit" value="fit">
+          Fit watermark box
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label for="scale-input">Scale factor</label>
+        <input type="number" id="scale-input" value="1.5" step="0.1" min="0.1">
+      </div>
+
+      <div class="field-row">
+        <label for="output-name-input">Output filename</label>
+        <input type="text" id="output-name-input" placeholder="auto">
+      </div>
+
+      <div class="field-row">
+        <label for="output-dir-input">Output folder</label>
+        <input type="text" id="output-dir-input" placeholder="server default" readonly>
+        <button type="button" id="output-dir-browse-btn">Browse&hellip;</button>
+      </div>
+
+      <div class="field-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="auto-detect-checkbox" checked>
+          Use auto-detect at process time
+        </label>
+      </div>
+
+      <div class="field-row">
+        <button id="process-btn" type="button" class="primary">Process video</button>
+        <span id="busy-indicator" class="badge busy hidden">Processing&hellip;</span>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="result-panel">
+      <h2>Result</h2>
+      <video id="result-video" controls></video>
+      <a id="download-link" class="download-link" download>Download output</a>
+    </section>
+
+    <section id="status-area" class="status" role="status" aria-live="polite"></section>
+  </main>
+
+  <div class="modal-overlay hidden" id="browse-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="browse-modal-title">
+      <div class="modal-header">
+        <h3 id="browse-modal-title">Browse</h3>
+        <button type="button" id="browse-modal-close-btn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-path mono" id="browse-modal-path"></div>
+      <div class="modal-list" id="browse-modal-list"></div>
+      <div class="modal-footer">
+        <button type="button" id="browse-modal-select-btn" class="primary hidden">Select this folder</button>
+        <button type="button" id="browse-modal-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
