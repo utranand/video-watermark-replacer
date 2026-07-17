@@ -544,6 +544,9 @@
       addOptionAndSelect(els['video-select'], basename(path), path);
       state.videos.push({ name: basename(path), path: path });
       selectVideo(path);
+    }, {
+      title: 'Select Source Folder',
+      onSelectFolder: function (dir) { addFolderSources('video', dir); }
     });
   }
 
@@ -552,25 +555,79 @@
       addOptionAndSelect(els['image-select'], basename(path), path);
       state.images.push({ name: basename(path), path: path });
       state.selectedImage = path;
+    }, {
+      title: 'Select Image Folder',
+      onSelectFolder: function (dir) { addFolderSources('image', dir); }
     });
   }
 
   function onOutputDirBrowseClick() {
     openBrowseModal('dir', function (path) {
       els['output-dir-input'].value = path;
-    });
+    }, { title: 'Select Output Folder' });
   }
 
-  function openBrowseModal(kind, onSelect) {
-    state.browse = { kind: kind, dir: '', parent: null, onSelect: onSelect };
-    els['browse-modal-select-btn'].classList.toggle('hidden', kind !== 'dir');
+  function openBrowseModal(kind, onSelect, opts) {
+    opts = opts || {};
+    state.browse = {
+      kind: kind, dir: '', parent: null,
+      onSelect: onSelect, onSelectFolder: opts.onSelectFolder || null
+    };
+    els['browse-modal-title'].textContent = opts.title || 'Browse';
+    els['browse-modal-select-btn'].classList.toggle(
+      'hidden', kind !== 'dir' && !opts.onSelectFolder);
     els['browse-modal'].classList.remove('hidden');
     loadBrowseDir('');
   }
 
   function closeBrowseModal() {
     els['browse-modal'].classList.add('hidden');
-    state.browse = { kind: null, dir: '', parent: null, onSelect: null };
+    state.browse = { kind: null, dir: '', parent: null, onSelect: null, onSelectFolder: null };
+  }
+
+  // List every matching file of the chosen folder into the dropdown, then
+  // select the first newly added one (falls back to the folder's first file
+  // when everything was already listed).
+  async function addFolderSources(kind, dir) {
+    try {
+      setStatus('Listing ' + kind + ' files in folder…');
+      var url = '/api/browse?dir=' + encodeURIComponent(dir) +
+        '&kind=' + encodeURIComponent(kind);
+      var res = await fetch(url);
+      var data = await res.json();
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || 'browse failed');
+      }
+      var files = data.files || [];
+      if (!files.length) {
+        setStatus('No ' + kind + ' files found in ' + data.dir, true);
+        return;
+      }
+      var sel = kind === 'video' ? els['video-select'] : els['image-select'];
+      var listed = kind === 'video' ? state.videos : state.images;
+      var existing = {};
+      Array.prototype.forEach.call(sel.options, function (o) { existing[o.value] = true; });
+      var firstNew = null;
+      files.forEach(function (f) {
+        if (existing[f.path]) { return; }
+        var opt = document.createElement('option');
+        opt.value = f.path;
+        opt.textContent = f.name;
+        sel.appendChild(opt);
+        listed.push({ name: f.name, path: f.path });
+        if (!firstNew) { firstNew = f.path; }
+      });
+      var target = firstNew || files[0].path;
+      sel.value = target;
+      if (kind === 'video') {
+        selectVideo(target);
+      } else {
+        state.selectedImage = target;
+      }
+      setStatus('Added ' + files.length + ' ' + kind + ' file(s) from ' + data.dir);
+    } catch (err) {
+      setStatus('Folder listing failed: ' + err.message, true);
+    }
   }
 
   function onBrowseModalKeydown(e) {
@@ -641,10 +698,10 @@
   }
 
   function onBrowseSelectFolderClick() {
-    var onSelect = state.browse.onSelect;
+    var cb = state.browse.onSelectFolder || state.browse.onSelect;
     var dir = state.browse.dir;
     closeBrowseModal();
-    if (onSelect) onSelect(dir);
+    if (cb) cb(dir);
   }
 
   // ---------------------------------------------------------------------
